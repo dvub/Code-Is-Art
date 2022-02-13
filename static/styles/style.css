@@ -1,0 +1,32 @@
+.title {
+    font-family: 'JetBrains Mono', monospace;
+    color:#FFFFFF;
+    position:absolute;
+    font-size: 2vh;
+
+}
+.title1 {
+    top:0px;
+    left:0px;
+}
+.title2 {
+    right:0px;
+    bottom:0px;
+    text-align:right;
+}
+.bg{
+    position:absolute;
+    top:0px;
+    left:0px;
+}
+.main {
+    height: 100vh;
+    width: 100vw;
+    top:0px;
+    left:0px;
+    position:relative;
+}
+body {
+    margin: 0px;
+    background-color: #000000;
+}
