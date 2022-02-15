@@ -1,11 +1,13 @@
+//this code has been minimally refactored,
+//it may not be very easy to read, i'm sorry
+
 //threejs stuff
 import * as THREE from 'https://cdn.skypack.dev/three@0.128'
 import { OrbitControls } from 'https://cdn.skypack.dev/three@0.128/examples/jsm/controls/OrbitControls.js';
 import {EffectComposer } from 'https://cdn.skypack.dev/three@0.128/examples/jsm/postprocessing/EffectComposer.js';
 import {RenderPass }  from 'https://cdn.skypack.dev/three@0.128/examples/jsm/postprocessing/RenderPass.js';
-import {BokehPass} from 'https://cdn.skypack.dev/three@0.128/examples/jsm/postprocessing/BokehPass.js'
 import {SSAOPass} from 'https://cdn.skypack.dev/three@0.128/examples/jsm/postprocessing/SSAOPass.js'
-import { FXAAPass } from 'https://cdn.skypack.dev/three@0.128/examples/jsm/postprocessing/FXAAPass.js';
+
 
 import { Octokit } from "https://cdn.skypack.dev/@octokit/rest";
 
@@ -14,49 +16,50 @@ const octokit = new Octokit({
     userAgent: 'Code-Is-Art v0.0.0',
 
     }
-); //TODO: auth
+); //TODO: integrate
 
 //lets get to it!
-
 let width = window.innerWidth;
 let height = window.innerHeight;
-//https://stackoverflow.com/questions/20290402/three-js-resizing-canvas
-    //credit for resizable canvas
-window.addEventListener( 'resize', onWindowResize, false );
 
-function onWindowResize(){
 
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-
-    renderer.setSize( window.innerWidth, window.innerHeight );
-    width = window.innerWidth;
-    height = window.innerHeight;
-
-}
-// get camera set up
-const camera = new THREE.PerspectiveCamera(
-    75,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    1000
-);
 //renderer is set up
 const renderer = new THREE.WebGLRenderer({
     canvas: document.querySelector('.bg'),
     antialias: true,
     alpha: true
 });
-
 renderer.setClearColor( 0x000000, 0 ); // the default
 renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(width, height);
+
+// get camera set up
+const camera = new THREE.PerspectiveCamera(
+    75,
+    width / height,
+    0.1,
+    1000
+);
 camera.position.z = -15
 camera.position.x  = -15
 camera.position.y = 15;
 camera.lookAt(new THREE.Vector3(0,0,0))
+//https://stackoverflow.com/questions/20290402/three-js-resizing-canvas
+    //credit for resizable canvas
+    window.addEventListener( 'resize', onWindowResize, false );
 
+    function onWindowResize(){
+        width = window.innerWidth;
+        height = window.innerHeight;
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+    
+        renderer.setSize( width, height );
+
+    
+    }
 //post-processing
+//post-processing is partially implemented as of now.
 const composer = new EffectComposer( renderer );
 const renderPass = new RenderPass( scene, camera );
 
@@ -65,25 +68,18 @@ const ssaoPass = new SSAOPass(scene, camera, {
     minDistance:0.001,
     maxDistance:0.15,
 });
-const fxaaPass = new FXAAPass();
-
-
 
 composer.addPass( renderPass );
 composer.addPass( ssaoPass );
-composer.addPass(fxaaPass );
+
 
 
 //setup meshes, lights, helpers, etc...
-let lightHelpers = [];
 let lights = [];
 
 //main
 createFloor(0,0,0,7,3)
-
-let stars = [];
-addStars(stars);
-
+//end of main
 
 //lights
 const ambientLight = new THREE.AmbientLight(0xFFFFFF,0.1)
@@ -98,14 +94,6 @@ animate();
 //animate function
 function animate() {
     //animate here...
-
-    //star drift, looks cool lol
-    stars.map(star => {
-        star.position.x += 0.01;
-        if (star.position.x > 50) {
-            star.position.x = -50
-        }
-    })
  
     //end of animation stuff
     requestAnimationFrame(animate);
@@ -113,7 +101,6 @@ function animate() {
 	composer.render();
     //renderer.render(scene,camera);
 }
-
 
 //https://stackoverflow.com/questions/42812861/three-js-pivot-point/4286733#4286733
     //rather than rotating an object on its own origin,
@@ -244,8 +231,9 @@ function createStairs(x,y,z,meshArray) {
 function createFloor(x,y,z,numFiles, numDirs) {
 
     //setting up a lot of values
-    //TODO: simplify/??
-    const sideLength = 10;
+    //2x values will exist for the 2 walls to be created,
+    //thus the code is slightly inefficient.
+    //sorry :/
     const lengthFiles = Math.floor(numFiles/2);
     const widthFiles = numFiles - lengthFiles;
 
@@ -253,39 +241,35 @@ function createFloor(x,y,z,numFiles, numDirs) {
     const lengthDirs = numDirs - widthDirs;
 
     const lengthPaintingsPerRoom = Math.floor(lengthFiles / widthDirs);
-    const createdFiles = widthDirs*lengthPaintingsPerRoom
-    const remaining = lengthFiles - createdFiles;
+    const remaining = lengthFiles - widthDirs*lengthPaintingsPerRoom;
 
     const widthPaintingsPerRoom = Math.floor(widthFiles / lengthDirs);
-    const createdWidthFiles = lengthDirs*widthPaintingsPerRoom;
-    const remainingWidthFiles = widthFiles - createdWidthFiles;
-
+    const remainingWidthFiles = widthFiles - (lengthDirs*widthPaintingsPerRoom);
     const max = 20*lengthDirs;
     const widthMax = 20*widthDirs;
+
     const offsetZ = (remaining === 0) ? 0 : 5;
     const offsetX = (remainingWidthFiles === 0) ? 0: 5;
-    const mainX = -max/2-offsetX;
-    const mainZ = -widthMax/2-offsetZ;
 
     //floor geometry, mesh, for entire room
     const material = new THREE.MeshStandardMaterial( {color: 0xE75E41} );
     const geometry = new THREE.BoxGeometry( (lengthDirs*20)+10+(offsetX*2) , 1, (widthDirs*20)+10+(offsetZ*2));
-    //const geometry = new THREE.BoxGeometry( (lengthDirs*20)+10, 1, (widthDirs*20)+10);
     const floor = new THREE.Mesh( geometry, material );
     floor.position.set(x,y,z)
     scene.add(floor)
 
-    x-=mainX 
-    z-=mainZ
+
+    x+=max/2-offsetX;
+    z+=widthMax/2-offsetZ;
     createCorner(x,y,z,10);
     //use loops to create most files and directories
     for (let i = 1; i<= widthDirs; i++) {
-        createStairRoom(x,y,z-(20*i)+sideLength,90);
-        createSide(x,y,z-(20*i),lengthPaintingsPerRoom,sideLength,0);
+        createStairRoom(x,y,z-(20*i)+10,90);
+        createSide(x,y,z-(20*i),lengthPaintingsPerRoom,10,0);
     }
     for (let i = 1; i<= lengthDirs; i++) {
-        createStairRoom(x-(20*i)+sideLength,y,z,0);
-        createSide(x-(20*i),y,z,widthPaintingsPerRoom,sideLength,-90);
+        createStairRoom(x-(20*i)+10,y,z,0);
+        createSide(x-(20*i),y,z,widthPaintingsPerRoom,10,-90);
 
     }
     //if we have leftovers, create them here
@@ -296,22 +280,4 @@ function createFloor(x,y,z,numFiles, numDirs) {
         createSide(x, y, z-widthMax-10, remaining, 10);
     }
 
-}
-
-//https://www.youtube.com/watch?v=Q7AOvWpIVHU&t=629s&ab_channel=Fireship
-    //idea from Fireship on YT lmao
-function addStars(starsArr) {
-    function createStar(arr) {
-        const geometry = new THREE.SphereGeometry(0.1,24,24);
-        const material = new THREE.MeshStandardMaterial( { color: 0xffffff});
-        const star = new THREE.Mesh( geometry, material );
-        const [x,y,z] = Array(3).fill().map(() => THREE.MathUtils.randFloatSpread(100))
-        star.position.set(x,y,z);
-        scene.add(star);
-        arr.push(star);
-    }
-
-    for (let i =0; i< 300; i++) {
-        createStar(stars);
-    }
 }
